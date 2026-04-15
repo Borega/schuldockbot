@@ -1,0 +1,32 @@
+[
+  {
+    "id": 84572,
+    "date": "2026-04-15T07:30:00+02:00",
+    "modified": "2026-04-15T10:05:00+02:00",
+    "link": "https://schuldock.hamburg/issues/84572/",
+    "title": {
+      "rendered": "Warnstreik am Freitag – Unterricht teilweise ausgesetzt"
+    },
+    "content": {
+      "rendered": "<p>Aufgrund eines <strong>Warnstreiks</strong> kann es am Freitag zu Unterrichtsausfällen kommen.</p><p>Bitte prüfen Sie regelmäßig den Vertretungsplan.</p>"
+    },
+    "details": {
+      "issue_type": "Schulbetrieb"
+    }
+  },
+  {
+    "id": 84573,
+    "date": "2026-04-16T09:00:00+02:00",
+    "modified": "2026-04-16T09:00:00+02:00",
+    "link": "https://schuldock.hamburg/issues/84573/",
+    "title": {
+      "rendered": "Sperrung der Sporthalle bis Montag"
+    },
+    "content": {
+      "rendered": "<p>Die Sporthalle bleibt bis Montag aufgrund technischer Prüfungen geschlossen.</p>"
+    },
+    "details": {
+      "issue_type": "Gebäude"
+    }
+  }
+]
