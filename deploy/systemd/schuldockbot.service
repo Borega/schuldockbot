@@ -1,0 +1,30 @@
+[Unit]
+Description=Schuldock notice polling bot
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=schuldockbot
+Group=schuldockbot
+WorkingDirectory=/opt/schuldockbot
+EnvironmentFile=-/etc/schuldockbot/schuldockbot.env
+Environment=PYTHONPATH=/opt/schuldockbot/src
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/env python3 -m schuldockbot.runtime.main
+Restart=on-failure
+RestartSec=15s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/lib/schuldockbot
+UMask=0077
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=schuldockbot
+
+[Install]
+WantedBy=multi-user.target
