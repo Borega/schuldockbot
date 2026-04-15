@@ -33,7 +33,15 @@ from .http import (
     fetch_http_bytes,
     make_http_fetcher,
 )
-from .service import RuntimeCycleError, RuntimeCycleResult, RuntimeProcessedNoticeStoreLike, run_poll_cycle
+from .service import (
+    RuntimeCycleError,
+    RuntimeCycleResult,
+    RuntimeLoopInvariantError,
+    RuntimeLoopSummary,
+    RuntimeProcessedNoticeStoreLike,
+    run_poll_cycle,
+    run_polling_loop,
+)
 
 __all__ = [
     "DEFAULT_HTML_ACCEPT",
@@ -59,6 +67,8 @@ __all__ = [
     "RuntimeConfig",
     "RuntimeCycleError",
     "RuntimeCycleResult",
+    "RuntimeLoopInvariantError",
+    "RuntimeLoopSummary",
     "RuntimeProcessedNoticeStoreLike",
     "RuntimeRetryPolicy",
     "RuntimeSourceConfig",
@@ -69,4 +79,5 @@ __all__ = [
     "load_runtime_config",
     "make_http_fetcher",
     "run_poll_cycle",
+    "run_polling_loop",
 ]

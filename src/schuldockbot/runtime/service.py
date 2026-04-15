@@ -1,10 +1,11 @@
-"""One-cycle runtime orchestration for fetch → detect → deliver execution."""
+"""Cycle orchestration and long-running runtime loop helpers."""
 
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 import socket
+from time import monotonic, sleep
 from typing import Any, Protocol
 
 from schuldockbot.ingestion import NoticeRecord, SourceSelectionError, fetch_notices
@@ -89,12 +90,41 @@ class RuntimeCycleError(RuntimeError):
         return payload
 
 
+@dataclass(frozen=True, slots=True)
+class RuntimeLoopSummary:
+    """Aggregate loop outcomes emitted after clean loop termination."""
+
+    cycles_completed: int
+    total_attempts: int
+    retries_performed: int
+    exit_reason: str
+
+    def to_safe_dict(self) -> dict[str, object]:
+        """Return diagnostics-safe loop counters and exit reason."""
+
+        return {
+            "cycles_completed": self.cycles_completed,
+            "total_attempts": self.total_attempts,
+            "retries_performed": self.retries_performed,
+            "exit_reason": self.exit_reason,
+        }
+
+
+class RuntimeLoopInvariantError(RuntimeError):
+    """Raised when the loop receives malformed/non-contract cycle behavior."""
+
+
 FetchNoticesFn = Callable[
     [Callable[[], str | bytes | bytearray], Callable[[], str | bytes | bytearray]],
     Any,
 ]
 DetectChangesFn = Callable[..., list[NoticeChange]]
 DeliverChangesFn = Callable[..., TalkDeliverySummary]
+CycleRunnerFn = Callable[[], RuntimeCycleResult]
+LoopEventSinkFn = Callable[[str, dict[str, object]], None]
+LoopShouldStopFn = Callable[[], bool]
+LoopClockFn = Callable[[], float]
+LoopSleepFn = Callable[[float], None]
 
 
 def run_poll_cycle(
@@ -227,6 +257,245 @@ def run_poll_cycle(
         )
 
     return result
+
+
+def run_polling_loop(
+    *,
+    cycle_runner: CycleRunnerFn,
+    poll_interval_seconds: int,
+    retry_max_attempts: int,
+    retry_backoff_seconds: float,
+    once: bool = False,
+    should_stop: LoopShouldStopFn | None = None,
+    monotonic_fn: LoopClockFn | None = None,
+    sleep_fn: LoopSleepFn | None = None,
+    event_sink: LoopEventSinkFn | None = None,
+) -> RuntimeLoopSummary:
+    """Run an unattended polling loop with bounded retry and cadence control."""
+
+    _validate_loop_inputs(
+        poll_interval_seconds=poll_interval_seconds,
+        retry_max_attempts=retry_max_attempts,
+        retry_backoff_seconds=retry_backoff_seconds,
+    )
+
+    stop_requested = should_stop or _never_stop
+    clock = monotonic if monotonic_fn is None else monotonic_fn
+    sleeper = sleep if sleep_fn is None else sleep_fn
+    sink = event_sink or _noop_event_sink
+
+    cycles_completed = 0
+    total_attempts = 0
+    retries_performed = 0
+
+    while True:
+        if stop_requested():
+            return RuntimeLoopSummary(
+                cycles_completed=cycles_completed,
+                total_attempts=total_attempts,
+                retries_performed=retries_performed,
+                exit_reason="signal_stop",
+            )
+
+        cycle_index = cycles_completed + 1
+        retry_attempt = 1
+
+        while True:
+            started_at = clock()
+            total_attempts += 1
+
+            sink(
+                "cycle_started",
+                {
+                    "cycle_index": cycle_index,
+                    "retry_attempt": retry_attempt,
+                    "retry_max_attempts": retry_max_attempts,
+                },
+            )
+
+            try:
+                cycle_result = cycle_runner()
+            except RuntimeCycleError as exc:
+                elapsed_seconds = _elapsed_seconds(clock, started_at)
+                failure_payload = exc.to_safe_dict()
+                failure_payload.update(
+                    {
+                        "cycle_index": cycle_index,
+                        "retry_attempt": retry_attempt,
+                        "retry_max_attempts": retry_max_attempts,
+                        "elapsed_seconds": elapsed_seconds,
+                    }
+                )
+
+                should_retry = exc.retryable and retry_attempt < retry_max_attempts and not stop_requested()
+                if should_retry:
+                    retries_performed += 1
+                    failure_payload["sleep_seconds"] = _round_seconds(retry_backoff_seconds)
+                    sink("cycle_retry", failure_payload)
+                    _sleep_with_stop(
+                        retry_backoff_seconds,
+                        should_stop=stop_requested,
+                        sleep_fn=sleeper,
+                    )
+                    if stop_requested():
+                        return RuntimeLoopSummary(
+                            cycles_completed=cycles_completed,
+                            total_attempts=total_attempts,
+                            retries_performed=retries_performed,
+                            exit_reason="signal_stop",
+                        )
+                    retry_attempt += 1
+                    continue
+
+                failure_payload["sleep_seconds"] = 0.0
+                sink("cycle_fatal", failure_payload)
+                raise
+            except Exception as exc:
+                sink(
+                    "cycle_fatal",
+                    {
+                        "phase": "cycle",
+                        "failure_class": "cycle_invariant",
+                        "retryable": False,
+                        "detail": "Cycle runner raised unexpected exception",
+                        "error_class": exc.__class__.__name__,
+                        "cycle_index": cycle_index,
+                        "retry_attempt": retry_attempt,
+                        "retry_max_attempts": retry_max_attempts,
+                        "elapsed_seconds": _elapsed_seconds(clock, started_at),
+                        "sleep_seconds": 0.0,
+                    },
+                )
+                raise RuntimeLoopInvariantError("Cycle runner raised unexpected exception") from exc
+
+            if not isinstance(cycle_result, RuntimeCycleResult):
+                sink(
+                    "cycle_fatal",
+                    {
+                        "phase": "cycle",
+                        "failure_class": "cycle_result_malformed",
+                        "retryable": False,
+                        "detail": "Cycle runner returned non-RuntimeCycleResult",
+                        "cycle_index": cycle_index,
+                        "retry_attempt": retry_attempt,
+                        "retry_max_attempts": retry_max_attempts,
+                        "elapsed_seconds": _elapsed_seconds(clock, started_at),
+                        "sleep_seconds": 0.0,
+                    },
+                )
+                raise RuntimeLoopInvariantError("Cycle runner returned malformed RuntimeCycleResult")
+
+            elapsed_seconds = _elapsed_seconds(clock, started_at)
+            raw_sleep_seconds = float(poll_interval_seconds) - elapsed_seconds
+            sleep_seconds = max(0.0, raw_sleep_seconds)
+
+            completed_payload = cycle_result.to_safe_dict()
+            completed_payload.update(
+                {
+                    "cycle_index": cycle_index,
+                    "retry_attempt": retry_attempt,
+                    "retry_max_attempts": retry_max_attempts,
+                    "elapsed_seconds": elapsed_seconds,
+                    "sleep_seconds": _round_seconds(sleep_seconds),
+                }
+            )
+            sink("cycle_completed", completed_payload)
+
+            if raw_sleep_seconds < 0:
+                sink(
+                    "scheduler_warning",
+                    {
+                        "phase": "schedule",
+                        "failure_class": "cadence_overrun",
+                        "retryable": False,
+                        "detail": "Cycle runtime exceeded poll interval; clamping sleep_seconds to zero",
+                        "cycle_index": cycle_index,
+                        "elapsed_seconds": elapsed_seconds,
+                        "target_interval_seconds": poll_interval_seconds,
+                        "sleep_seconds": 0.0,
+                    },
+                )
+
+            cycles_completed += 1
+
+            if once:
+                return RuntimeLoopSummary(
+                    cycles_completed=cycles_completed,
+                    total_attempts=total_attempts,
+                    retries_performed=retries_performed,
+                    exit_reason="once",
+                )
+
+            if stop_requested():
+                return RuntimeLoopSummary(
+                    cycles_completed=cycles_completed,
+                    total_attempts=total_attempts,
+                    retries_performed=retries_performed,
+                    exit_reason="signal_stop",
+                )
+
+            _sleep_with_stop(
+                sleep_seconds,
+                should_stop=stop_requested,
+                sleep_fn=sleeper,
+            )
+            if stop_requested():
+                return RuntimeLoopSummary(
+                    cycles_completed=cycles_completed,
+                    total_attempts=total_attempts,
+                    retries_performed=retries_performed,
+                    exit_reason="signal_stop",
+                )
+
+            break
+
+
+def _validate_loop_inputs(
+    *,
+    poll_interval_seconds: int,
+    retry_max_attempts: int,
+    retry_backoff_seconds: float,
+) -> None:
+    if poll_interval_seconds <= 0:
+        raise ValueError("poll_interval_seconds must be greater than zero")
+
+    if retry_max_attempts <= 0:
+        raise ValueError("retry_max_attempts must be greater than zero")
+
+    if retry_backoff_seconds < 0:
+        raise ValueError("retry_backoff_seconds must be non-negative")
+
+
+def _sleep_with_stop(
+    total_seconds: float,
+    *,
+    should_stop: LoopShouldStopFn,
+    sleep_fn: LoopSleepFn,
+) -> None:
+    remaining = max(0.0, float(total_seconds))
+    while remaining > 1e-6:
+        if should_stop():
+            return
+
+        chunk = min(remaining, 1.0)
+        sleep_fn(chunk)
+        remaining = max(0.0, remaining - chunk)
+
+
+def _elapsed_seconds(clock: LoopClockFn, started_at: float) -> float:
+    return _round_seconds(max(0.0, clock() - started_at))
+
+
+def _round_seconds(value: float) -> float:
+    return round(float(value), 3)
+
+
+def _never_stop() -> bool:
+    return False
+
+
+def _noop_event_sink(_event: str, _payload: dict[str, object]) -> None:
+    return None
 
 
 def _coerce_notice_records(records: list[NoticeRecord]) -> list[NoticeRecord]:
@@ -368,6 +637,9 @@ def _sanitize_value(value: object) -> object:
 __all__ = [
     "RuntimeCycleError",
     "RuntimeCycleResult",
+    "RuntimeLoopInvariantError",
+    "RuntimeLoopSummary",
     "RuntimeProcessedNoticeStoreLike",
     "run_poll_cycle",
+    "run_polling_loop",
 ]
