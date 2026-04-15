@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from enum import StrEnum
+
+from schuldockbot.ingestion.models import NoticeRecord
 
 
 class StateStoreError(RuntimeError):
@@ -47,6 +50,35 @@ class ProcessedNoticeState:
             "revision_token": self.revision_token,
             "source_link": self.source_link,
             "processed_at": self.processed_at.isoformat(),
+        }
+
+
+class ChangeKind(StrEnum):
+    """Typed change classification emitted from the state boundary."""
+
+    NEW = "NEW"
+    UPDATE = "UPDATE"
+
+
+@dataclass(frozen=True, slots=True)
+class NoticeChange:
+    """Classified change event for one ingested notice."""
+
+    kind: ChangeKind
+    notice: NoticeRecord
+    previous_revision_token: str | None = None
+
+    def to_safe_dict(self) -> dict[str, str]:
+        """Return diagnostics-safe change metadata for logs/tests."""
+
+        return {
+            "kind": self.kind.value,
+            "source_id": self.notice.source_id,
+            "revision_token": self.notice.revision_token,
+            "source_link": self.notice.source_link,
+            "previous_revision_token": ""
+            if self.previous_revision_token is None
+            else self.previous_revision_token,
         }
 
 
