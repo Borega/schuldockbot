@@ -138,5 +138,5 @@ Use this from repo root before host rollout:
 ```bash
 python -m pytest tests/unit/runtime/test_service_unit_contract.py -q
 python -m pytest tests/unit/ingestion tests/unit/state tests/unit/talk tests/unit/runtime -q
-(command -v systemd-analyze >/dev/null 2>&1 && systemd-analyze verify deploy/systemd/schuldockbot.service || true)
+python -c "import shutil, subprocess, sys; exe = shutil.which('systemd-analyze'); sys.exit(0 if exe is None else subprocess.call([exe, 'verify', 'deploy/systemd/schuldockbot.service']))"
 ```
