@@ -28,3 +28,4 @@ vendor/
 coverage/
 .cache/
 tmp/
+.pytest_tmp_state/
