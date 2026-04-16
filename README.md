@@ -44,6 +44,28 @@ docker compose --env-file .env.example config
 docker compose --env-file .env.example run --rm schuldockbot --once --dry-run
 ```
 
+## GHCR Publish Proof (strict + local fallback)
+
+The publish workflow lives at `.github/workflows/publish-ghcr.yml` and pushes `ghcr.io/borega/schuldockbot:latest` on `main`.
+
+Strict proof mode (real registry pull + runtime lifecycle evidence):
+
+```bash
+docker pull ghcr.io/borega/schuldockbot:latest
+python scripts/verify_published_image.py --image ghcr.io/borega/schuldockbot:latest --env-file .env.example
+```
+
+Prerequisite: run strict mode only after at least one successful `Publish GHCR Image` workflow run on `main`.
+
+Local fallback mode (deterministic dev check without registry pull):
+
+```bash
+docker build -t schuldockbot:publish-proof .
+python scripts/verify_published_image.py --image schuldockbot:publish-proof --skip-pull --env-file .env.example
+```
+
+Both modes require `startup` and `shutdown` lifecycle events in container output; missing events fail verification.
+
 ## Long-running Compose Operator Evidence
 
 For real service operation and observability evidence, first create `.env` from `.env.example` (with non-secret placeholders replaced locally), then run:
