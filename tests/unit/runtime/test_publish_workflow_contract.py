@@ -145,6 +145,12 @@ def test_publish_workflow_includes_required_actions_and_ghcr_login_wiring() -> N
     assert re.search(r"(?m)^\s*(?:-\s*)?uses:\s*actions/checkout@", workflow), (
         "Missing `actions/checkout` step in publish workflow"
     )
+    assert re.search(r"(?m)^\s*(?:-\s*)?uses:\s*docker/setup-qemu-action@", workflow), (
+        "Missing `docker/setup-qemu-action` step in publish workflow"
+    )
+    assert re.search(r"(?m)^\s*(?:-\s*)?uses:\s*docker/setup-buildx-action@", workflow), (
+        "Missing `docker/setup-buildx-action` step in publish workflow"
+    )
     assert re.search(r"(?m)^\s*(?:-\s*)?uses:\s*docker/login-action@", workflow), (
         "Missing `docker/login-action` step in publish workflow"
     )
@@ -172,4 +178,19 @@ def test_publish_workflow_build_push_targets_latest_image_and_enables_push() -> 
     )
     assert re.search(r"(?m)^\s*push:\s*true\s*$", workflow), (
         "Build/push step must set `push: true`"
+    )
+
+    platforms_match = re.search(r"(?m)^\s*platforms:\s*([^\n]+)$", workflow)
+    assert platforms_match is not None, (
+        "Build/push step must declare `platforms` so GHCR publishes multi-arch images"
+    )
+
+    platform_entries = {
+        item.strip()
+        for item in platforms_match.group(1).split(",")
+        if item.strip()
+    }
+    assert {"linux/amd64", "linux/arm64"}.issubset(platform_entries), (
+        "Build/push step must include linux/amd64 and linux/arm64 platforms. "
+        f"Found platforms={sorted(platform_entries)!r}"
     )
