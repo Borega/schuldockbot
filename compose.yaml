@@ -1,0 +1,26 @@
+services:
+  schuldockbot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: schuldockbot:s02
+    entrypoint: ["python", "-m", "schuldockbot.runtime.main"]
+    env_file:
+      - .env.example
+    restart: unless-stopped
+    volumes:
+      - schuldockbot_state:/var/lib/schuldockbot
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "from schuldockbot.runtime.config import load_runtime_config; load_runtime_config()"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  schuldockbot_state:
+    name: schuldockbot_state
