@@ -16,7 +16,7 @@ def main() -> int:
     env["PYTHONPATH"] = "src" if not existing_pythonpath else f"src{os.pathsep}{existing_pythonpath}"
     env.update(
         {
-            "SCHULDOCKBOT_SOURCE_JSON_URL": "https://schuldock.hamburg/schuldock/v1/issues",
+            "SCHULDOCKBOT_SOURCE_JSON_URL": "https://schuldock.hamburg/wp-json/schuldock/v1/issues",
             "SCHULDOCKBOT_SOURCE_HTML_URL": "https://schuldock.hamburg/aktuelle-meldungen",
             "SCHULDOCKBOT_STATE_DB_PATH": str(state_db_path),
             "SCHULDOCKBOT_TALK_BASE_URL": "https://cloud.example",

@@ -44,7 +44,7 @@ def workspace_tmp_path() -> Iterator[Path]:
 
 def _base_env(tmp_path: Path) -> dict[str, str]:
     return {
-        ENV_SOURCE_JSON_URL: "https://schuldock.hamburg/schuldock/v1/issues",
+        ENV_SOURCE_JSON_URL: "https://schuldock.hamburg/wp-json/schuldock/v1/issues",
         ENV_SOURCE_HTML_URL: "https://schuldock.hamburg/aktuelle-meldungen/",
         ENV_STATE_DB_PATH: str(tmp_path / "state" / "processed.db"),
         ENV_TALK_BASE_URL: "https://cloud.example/",
@@ -61,7 +61,7 @@ def test_load_runtime_config_parses_defaults_and_normalizes_paths(
 
     config = load_runtime_config(env)
 
-    assert config.source.json_url == "https://schuldock.hamburg/schuldock/v1/issues"
+    assert config.source.json_url == "https://schuldock.hamburg/wp-json/schuldock/v1/issues"
     assert config.source.html_url == "https://schuldock.hamburg/aktuelle-meldungen"
     assert config.poll_interval_seconds == DEFAULT_POLL_INTERVAL_SECONDS
     assert config.retry.max_attempts == DEFAULT_RETRY_MAX_ATTEMPTS

@@ -49,6 +49,15 @@ def test_decode_issues_payload_maps_fixture_to_normalized_records() -> None:
     assert len(first.revision_token) == 64
 
 
+def test_decode_issues_payload_accepts_object_issue_type_shape() -> None:
+    payload = _load_fixture_payload()
+    payload[0]["details"]["issue_type"] = {"id": 229, "name": "Fehler", "slug": "fehler"}
+
+    records = parse_issues_payload(payload)
+
+    assert records[0].type == "Fehler"
+
+
 def test_decode_issues_payload_classifies_invalid_json_as_decode_error() -> None:
     with pytest.raises(JsonDecodeError) as exc_info:
         decode_issues_payload("{" )

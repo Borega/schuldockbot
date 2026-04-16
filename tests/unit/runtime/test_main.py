@@ -63,7 +63,7 @@ def _build_runtime_config(
 
     return RuntimeConfig(
         source=RuntimeSourceConfig(
-            json_url="https://schuldock.hamburg/schuldock/v1/issues",
+            json_url="https://schuldock.hamburg/wp-json/schuldock/v1/issues",
             html_url="https://schuldock.hamburg/aktuelle-meldungen",
         ),
         poll_interval_seconds=poll_interval_seconds,

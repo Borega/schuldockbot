@@ -60,7 +60,7 @@ def test_env_parser_reports_invalid_entries_and_blank_required_keys() -> None:
             "\n".join(
                 [
                     "BROKEN_LINE_WITHOUT_EQUALS",
-                    "SCHULDOCKBOT_SOURCE_JSON_URL=https://schuldock.hamburg/schuldock/v1/issues",
+                    "SCHULDOCKBOT_SOURCE_JSON_URL=https://schuldock.hamburg/wp-json/schuldock/v1/issues",
                     "SCHULDOCKBOT_SOURCE_HTML_URL=https://schuldock.hamburg/aktuelle-meldungen",
                     "SCHULDOCKBOT_STATE_DB_PATH=/var/lib/schuldockbot/state.db",
                     "SCHULDOCKBOT_TALK_BASE_URL=https://nextcloud.example",

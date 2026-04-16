@@ -12,7 +12,7 @@ from .normalize import canonical_text, normalize_notice, parse_german_date
 
 HTML_FALLBACK_PATH = "aktuelle-meldungen/"
 HTML_FALLBACK_URL = "https://schuldock.hamburg/aktuelle-meldungen/"
-_SECTION_SELECTOR = "section.section-issues"
+_SECTION_SELECTOR = ".section-issues"
 _ITEM_SELECTOR = "li.pp-item"
 
 
@@ -74,7 +74,7 @@ class _IssuesListingParser(HTMLParser):
         attrs_map = {key: value for key, value in attrs if value is not None}
         class_tokens = _class_tokens(attrs_map.get("class"))
 
-        if self._section_depth is None and tag == "section" and "section-issues" in class_tokens:
+        if self._section_depth is None and "section-issues" in class_tokens:
             self._section_depth = self._depth
             self.section_found = True
 
@@ -139,13 +139,13 @@ def _class_tokens(raw_class: str | None) -> set[str]:
 
 
 def _resolve_context(*, class_tokens: set[str], current_context: str | None) -> str | None:
-    if "pp-type" in class_tokens:
+    if "pp-type" in class_tokens or "pp-entry-terms" in class_tokens:
         return "type"
-    if "pp-date" in class_tokens:
+    if "pp-date" in class_tokens or "issue-date" in class_tokens:
         return "date"
-    if "pp-title" in class_tokens:
+    if "pp-title" in class_tokens or "pp-entry-title" in class_tokens:
         return "title"
-    if "pp-content" in class_tokens:
+    if "pp-content" in class_tokens or "pp-entry-content" in class_tokens:
         return "content"
     return current_context
 
@@ -230,25 +230,25 @@ def parse_html_payload(
         notice_type = _require_text_field(
             " ".join(item.notice_type_parts),
             field="type",
-            selector=".pp-type",
+            selector=".pp-type/.pp-entry-terms",
             item_index=item_index,
         )
         date_text = _require_text_field(
             " ".join(item.date_parts),
             field="date",
-            selector=".pp-date",
+            selector=".pp-date/.issue-date",
             item_index=item_index,
         )
         title = _require_text_field(
             " ".join(item.title_parts),
             field="title",
-            selector=".pp-title",
+            selector=".pp-title/.pp-entry-title",
             item_index=item_index,
         )
         content = _require_text_field(
             " ".join(item.content_parts),
             field="content",
-            selector=".pp-content",
+            selector=".pp-content/.pp-entry-content",
             item_index=item_index,
         )
 
@@ -256,10 +256,10 @@ def parse_html_payload(
             published_at = parse_german_date(date_text)
         except ValueError as exc:
             raise HtmlFieldError(
-                "Failed to parse required field 'date' from selector '.pp-date'",
+                "Failed to parse required field 'date' from selector '.pp-date/.issue-date'",
                 context={
                     "field": "date",
-                    "selector": ".pp-date",
+                    "selector": ".pp-date/.issue-date",
                     "item_index": str(item_index),
                 },
             ) from exc

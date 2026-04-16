@@ -70,4 +70,4 @@ def test_fetch_notices_raises_dual_source_error_when_json_and_fallback_fail() ->
     assert diagnostics["source_mode"] == "html_fallback"
     assert diagnostics["fallback_reason"] == "decode"
     assert diagnostics["json_failure"]["failure_class"] == "decode"
-    assert diagnostics["html_failure"]["selector"] == "section.section-issues"
+    assert diagnostics["html_failure"]["selector"] == ".section-issues"

@@ -9,7 +9,7 @@ import json
 from .models import NoticeRecord, SourceMode
 from .normalize import canonical_text, normalize_notice
 
-ISSUES_ENDPOINT = "schuldock/v1/issues"
+ISSUES_ENDPOINT = "wp-json/schuldock/v1/issues"
 
 
 class JsonFailureClass(StrEnum):
@@ -120,6 +120,32 @@ def _require_source_id(issue: Mapping[str, object], *, issue_index: int) -> str 
     return source_id
 
 
+def _require_issue_type_text(details: Mapping[str, object], *, issue_index: int) -> str:
+    raw_issue_type = _require_key(details, key="issue_type", path="issue.details", issue_index=issue_index)
+
+    if isinstance(raw_issue_type, str):
+        cleaned = canonical_text(raw_issue_type)
+        if cleaned:
+            return cleaned
+        raise JsonSchemaError(
+            "Field 'issue.details.issue_type' must not be empty",
+            context={"path": "issue.details.issue_type", "issue_index": str(issue_index)},
+        )
+
+    if isinstance(raw_issue_type, Mapping):
+        return _require_text(
+            raw_issue_type,
+            key="name",
+            path="issue.details.issue_type",
+            issue_index=issue_index,
+        )
+
+    raise JsonSchemaError(
+        "Expected text/object at 'issue.details.issue_type'",
+        context={"path": "issue.details.issue_type", "issue_index": str(issue_index)},
+    )
+
+
 def parse_issue_record(issue: Mapping[str, object], *, issue_index: int) -> NoticeRecord:
     """Parse one decoded issue object into a normalized notice record."""
 
@@ -158,7 +184,7 @@ def parse_issue_record(issue: Mapping[str, object], *, issue_index: int) -> Noti
     return normalize_notice(
         source_mode=SourceMode.JSON,
         source_id=source_id,
-        notice_type=_require_text(details, key="issue_type", path="issue.details", issue_index=issue_index),
+        notice_type=_require_issue_type_text(details, issue_index=issue_index),
         title=_require_text(title, key="rendered", path="issue.title", issue_index=issue_index),
         content=_require_text(content, key="rendered", path="issue.content", issue_index=issue_index),
         source_link=source_link,

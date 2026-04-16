@@ -85,3 +85,9 @@ def test_parse_german_date_accepts_suffixes_from_html_listing_fixture() -> None:
     parsed = parse_german_date("15.04.2026 – anhaltend")
 
     assert parsed.isoformat() == "2026-04-14T22:00:00+00:00"
+
+
+def test_parse_german_date_accepts_named_month_format_from_live_markup() -> None:
+    parsed = parse_german_date("15. April 2026 9:27 – anhaltend")
+
+    assert parsed.isoformat() == "2026-04-15T07:27:00+00:00"

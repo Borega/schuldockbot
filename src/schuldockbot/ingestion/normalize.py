@@ -17,6 +17,25 @@ _WHITESPACE_RE = re.compile(r"\s+")
 _GERMAN_DATE_RE = re.compile(
     r"(?P<day>\d{1,2})\.(?P<month>\d{1,2})\.(?P<year>\d{4})(?:\s+(?P<hour>\d{1,2}):(?P<minute>\d{2}))?"
 )
+_GERMAN_DATE_NAMED_MONTH_RE = re.compile(
+    r"(?P<day>\d{1,2})\.\s*(?P<month_name>januar|februar|märz|maerz|april|mai|juni|juli|august|september|oktober|november|dezember)\s+(?P<year>\d{4})(?:\s+(?P<hour>\d{1,2}):(?P<minute>\d{2}))?",
+    re.IGNORECASE,
+)
+_GERMAN_MONTH_NAME_TO_INT = {
+    "januar": 1,
+    "februar": 2,
+    "märz": 3,
+    "maerz": 3,
+    "april": 4,
+    "mai": 5,
+    "juni": 6,
+    "juli": 7,
+    "august": 8,
+    "september": 9,
+    "oktober": 10,
+    "november": 11,
+    "dezember": 12,
+}
 
 
 class _TextExtractor(HTMLParser):
@@ -96,20 +115,36 @@ def _berlin_fallback_tz(dt: datetime) -> timezone:
 
 
 def parse_german_date(value: str, *, tz_name: str = "Europe/Berlin") -> datetime:
-    """Parse German date labels like '15.04.2026 – anhaltend'."""
+    """Parse German date labels like '15.04.2026 – anhaltend' or '15. April 2026 9:27'."""
 
     cleaned = canonical_text(html_to_text(value))
     match = _GERMAN_DATE_RE.search(cleaned)
-    if not match:
-        raise ValueError(f"could not parse German date from {cleaned!r}")
 
-    naive = datetime(
-        year=int(match.group("year")),
-        month=int(match.group("month")),
-        day=int(match.group("day")),
-        hour=int(match.group("hour") or 0),
-        minute=int(match.group("minute") or 0),
-    )
+    if match is not None:
+        naive = datetime(
+            year=int(match.group("year")),
+            month=int(match.group("month")),
+            day=int(match.group("day")),
+            hour=int(match.group("hour") or 0),
+            minute=int(match.group("minute") or 0),
+        )
+    else:
+        named_match = _GERMAN_DATE_NAMED_MONTH_RE.search(cleaned)
+        if named_match is None:
+            raise ValueError(f"could not parse German date from {cleaned!r}")
+
+        month_name = canonical_text(named_match.group("month_name")).lower()
+        month = _GERMAN_MONTH_NAME_TO_INT.get(month_name)
+        if month is None:
+            raise ValueError(f"unsupported German month name {month_name!r}")
+
+        naive = datetime(
+            year=int(named_match.group("year")),
+            month=month,
+            day=int(named_match.group("day")),
+            hour=int(named_match.group("hour") or 0),
+            minute=int(named_match.group("minute") or 0),
+        )
 
     try:
         local_tz: tzinfo = ZoneInfo(tz_name)

@@ -45,7 +45,7 @@ Optional keys (runtime defaults apply if omitted):
 Safe sample (replace placeholders with real values; do **not** commit secrets):
 
 ```dotenv
-SCHULDOCKBOT_SOURCE_JSON_URL=https://schuldock.hamburg/schuldock/v1/issues
+SCHULDOCKBOT_SOURCE_JSON_URL=https://schuldock.hamburg/wp-json/schuldock/v1/issues
 SCHULDOCKBOT_SOURCE_HTML_URL=https://schuldock.hamburg/aktuelle-meldungen
 SCHULDOCKBOT_STATE_DB_PATH=/var/lib/schuldockbot/state.db
 SCHULDOCKBOT_TALK_BASE_URL=https://cloud.example

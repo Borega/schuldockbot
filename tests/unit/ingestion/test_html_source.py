@@ -48,6 +48,30 @@ def test_parse_html_payload_maps_fixture_to_normalized_records() -> None:
     assert second.content == "Die Sporthalle bleibt bis Montag aufgrund technischer Prüfungen geschlossen."
 
 
+def test_parse_html_payload_accepts_current_live_markup_classes() -> None:
+    payload = """
+    <div class="section section-issues">
+      <ul class="pp-listing">
+        <li class="pp-item">
+          <article>
+            <div class="pp-entry-terms"><span class="pp-term"><strong>Fehler</strong></span></div>
+            <span class="issue-date">15. April 2026 9:27 – anhaltend</span>
+            <h3 class="pp-entry-title">Einzelne E-Mail-Postfächer in IServ Hamburg nicht erreichbar!</h3>
+            <div class="pp-entry-content"><p>IServ arbeitet an einer Lösung des Problems.</p></div>
+          </article>
+        </li>
+      </ul>
+    </div>
+    """
+
+    records = parse_html_payload(payload)
+
+    assert len(records) == 1
+    assert records[0].type == "Fehler"
+    assert records[0].title == "Einzelne E-Mail-Postfächer in IServ Hamburg nicht erreichbar!"
+    assert records[0].content == "IServ arbeitet an einer Lösung des Problems."
+
+
 def test_parse_html_payload_is_deterministic_without_explicit_source_ids() -> None:
     first_run = parse_html_payload(_load_fixture_text())
     second_run = parse_html_payload(_load_fixture_text())
@@ -65,8 +89,8 @@ def test_parse_html_payload_reports_missing_section_selector() -> None:
         parse_html_payload(drifted_markup)
 
     error = exc_info.value
-    assert "section.section-issues" in str(error)
-    assert error.to_safe_dict()["selector"] == "section.section-issues"
+    assert "section-issues" in str(error)
+    assert error.to_safe_dict()["selector"] == ".section-issues"
 
 
 def test_parse_html_payload_reports_missing_item_title_field() -> None:
@@ -78,7 +102,7 @@ def test_parse_html_payload_reports_missing_item_title_field() -> None:
     error = exc_info.value
     safe = error.to_safe_dict()
     assert safe["field"] == "title"
-    assert safe["selector"] == ".pp-title"
+    assert safe["selector"] == ".pp-title/.pp-entry-title"
     assert safe["item_index"] == "0"
 
 
@@ -91,7 +115,7 @@ def test_parse_html_payload_reports_malformed_date_field() -> None:
     error = exc_info.value
     safe = error.to_safe_dict()
     assert safe["field"] == "date"
-    assert safe["selector"] == ".pp-date"
+    assert safe["selector"] == ".pp-date/.issue-date"
     assert safe["item_index"] == "0"
 
 
