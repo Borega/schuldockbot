@@ -1,0 +1,31 @@
+# Version control and planning artifacts
+.git
+.gsd
+.gsd*
+
+# Test and local runtime state
+.pytest-tmp
+.pytest-tmp*
+.pytest_tmp_state
+.pytest_tmp_state*
+.pytest_cache
+
+# Python caches and build outputs
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+build/
+dist/
+
+# Local environments and secrets
+.venv/
+venv/
+.env
+.env.*
+
+# Local data/log artifacts
+*.db
+*.sqlite
+*.sqlite3
+*.log
