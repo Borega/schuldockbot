@@ -1,0 +1,42 @@
+Schuldockbot Non-Commercial Attribution License (NCAL-1.0)
+
+Copyright (c) Borega
+
+1) Grant of Permission (Non-Commercial Only)
+
+Permission is granted to use, copy, modify, and redistribute this software and related documentation solely for non-commercial purposes.
+
+2) Mandatory Attribution and Original Source (OG) Reference
+
+Any distribution, modification, fork, public deployment, or derivative work must include clear attribution to the original source (OG):
+
+- Project: Borega/Schuldockbot
+- Source reference: https://github.com/Borega/Schuldockbot
+
+Attribution must remain visible in repository documentation or equivalent operator-facing materials.
+
+3) Commercial Use Restriction
+
+Commercial use is prohibited unless you first obtain explicit written permission from the copyright holder.
+
+For this license, "commercial use" includes (without limitation) selling, sublicensing, paid hosting, paid support bundles, integration into paid offerings, or any direct/indirect monetary exploitation.
+
+4) Distribution Conditions
+
+If you redistribute this project (modified or unmodified), you must:
+
+- keep this license text,
+- preserve attribution to the original source,
+- keep notices describing material changes.
+
+5) No Trademark Grant
+
+This license does not grant rights to any trademarks, logos, or branding.
+
+6) Disclaimer of Warranty
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+
+7) Limitation of Liability
+
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT, OR OTHERWISE, ARISING FROM OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
