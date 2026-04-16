@@ -138,7 +138,7 @@ Run these commands from repo root. Do **not** start S05 host evidence collection
 ```bash
 python -m pytest tests/integration/test_runtime_end_to_end.py -q
 python -m pytest tests/unit/ingestion tests/unit/state tests/unit/talk tests/unit/runtime tests/integration/test_runtime_end_to_end.py -q
-PYTHONPATH=src SCHULDOCKBOT_SOURCE_JSON_URL=https://schuldock.hamburg/schuldock/v1/issues SCHULDOCKBOT_SOURCE_HTML_URL=https://schuldock.hamburg/aktuelle-meldungen SCHULDOCKBOT_STATE_DB_PATH=.pytest-tmp/s05-proof/runtime-cli.db SCHULDOCKBOT_TALK_BASE_URL=https://cloud.example SCHULDOCKBOT_TALK_ROOM_TOKEN=room-token-placeholder SCHULDOCKBOT_TALK_USERNAME=bot-user SCHULDOCKBOT_TALK_APP_PASSWORD=app-password-placeholder python -m schuldockbot.runtime.main --once --dry-run
+python scripts/verify_runtime_dry_run.py
 python -m pytest tests/unit/runtime/test_service_unit_contract.py -q
 python -c "import shutil, subprocess, sys; exe = shutil.which('systemd-analyze'); sys.exit(0 if exe is None else subprocess.call([exe, 'verify', 'deploy/systemd/schuldockbot.service']))"
 ```
